@@ -1,0 +1,215 @@
+#!/usr/bin/perl -T
+#-----------------------------------------------------------------------------
+#   Junior
+#
+#       Diego M. Vadell <dvadell(-AT-)linuxclusters.com.ar>
+#
+#-----------------------------------------------------------------------------
+
+BEGIN {
+    # Add the plugins directory to the search path
+    # We add them at the start of @INC so when we require somefile, we are
+    # sure we include the right one in the plugins or conf directories.
+    $main::Homedir = "."; # Where we are installed.
+    unshift(@INC, "$main::Homedir/plugins");
+    unshift(@INC, "$main::Homedir/conf");
+}
+
+use strict;
+use warnings;
+use English '-no_match_vars';
+use Data::Dumper::Simple;
+use Carp;
+use Junior::Probe;
+use Clone qw(clone);
+use Getopt::Long;
+
+## Constants
+our $version = "0.0.2";
+our $start_time = localtime();
+print "Junior $version starting at $start_time \n";
+
+my $test;
+my $runonce;
+our $debug;
+my $hostconf = "$main::Homedir/conf/hosts.conf";
+
+# Command-line options
+GetOptions("debug"=>\$debug,
+           "test=s"=>\$test,
+           "runonce"=>\$runonce,
+           "config=s"=>\$hostconf,);
+
+# Handle the special case of the "--test" commando line option
+# in which we take a plugin and a configuration line, and run it.
+if ( $test ) { 
+    # Make a temporary file.
+    use File::Temp qw(tempfile);
+    my ($temp_fh, $temp_filename) = tempfile();
+
+    # Put our arguments there
+    print $temp_fh $test;
+
+    # The new hosts file
+    $hostconf = $temp_filename;
+}
+
+#----------------------------------------------------------------------
+
+## Load defaults from external file (at last!)
+require "junior.conf";
+
+# Take the list of probes 
+my $all_probes = read_probes_config($hostconf);
+my $old_probes = {};
+dbug("Running with debug turned ON");
+dbug("read_probes_config returned:");
+dbug("-------------------------------------------------------------");
+dbug(Dumper($all_probes));
+dbug("-------------------------------------------------------------");
+
+# Work! :)
+dbug("Start Working...");
+
+while () {
+    $start_time = time();
+
+    dbug("Luego de copy all_probes a old_probes:");
+    dbug("-------------------------------------------------------------");
+    dbug(Dumper($all_probes, $old_probes));
+    dbug("-------------------------------------------------------------");
+
+    # Make the probes!
+    my $stash = {};
+    $all_probes = make_probes($all_probes,$old_probes,$stash);
+    dbug("Luego de hacer las pruebas...\n");
+    dbug(Dumper($all_probes));
+
+    # Now that we are done with the probes, call the output[s] plugin[s]
+    run_output_plugins($all_probes, $old_probes);
+    dbug("Luego de output_plugins: \n");
+    dbug(Dumper($all_probes, $old_probes));
+
+
+    my $finish_time = time();
+    print "Loop done at " . localtime() . 
+          " in " . ( $finish_time - $start_time ) . " secs.\n";
+
+    exit if $runonce;
+
+    # Copy $all_probes into $old_probes
+    $old_probes = clone ($all_probes);
+
+    my $sleep_time = 60 -  ( $finish_time - $start_time);
+    $sleep_time = 60 if ( $sleep_time < 0);  # Cant sleep negative numbers
+    print "Sleeping for $sleep_time secs. \n";
+    sleep $sleep_time;
+}
+
+exit 0;
+
+#-------------------------------------------------------------------------
+
+sub read_probes_config {
+    my($hostfile) = @ARG;
+    my $all_probes = {};
+    my($id,$module,$cmdline,$options,@tmp);
+
+    ## Read hosts.conf file, skipping blank and comment lines
+    open (my $fp, '<', $hostfile) || croak "angel: Cannot open $hostfile";
+
+    while (my $line = <$fp>) {
+        our $long_description;
+        our $group;
+        our $tolerance;
+        our $every;
+
+        # If we are in a comment, save them as the probe's description.
+        if ($line =~ /^\#(.*)/o) {
+           $long_description .= $1;
+           next;
+        }
+
+        # Check for the Group directive
+        if ($line =~ /^Group (.*)/) {
+           $group = $1;
+           next;
+        }
+
+        # Check for the tolerance directive
+        if ($line =~ /^tolerance (.*)/) {
+           $tolerance = $1;
+           next;
+        }
+
+        # Check for the every directive
+        if ($line =~ /^every (.*)/) {
+           $every = $1;
+           next;
+        }
+
+        chomp $line;
+
+        ## Check for empty, commented and out of format lines
+        ## (remember, options may be blank)
+        @tmp = split(':',$line);
+        if (!defined($line) || $#tmp < 3)   { next; }
+    
+        ## Parse the line.
+        ($id,$module,$cmdline,$options) = @tmp;
+    
+        ## 'require' the module
+        use autouse $module => qw($module);
+
+        ## Add to the $all_probes hash
+        $all_probes->{$id} = new Junior::Probe($id,$module,$cmdline,$options);
+        $all_probes->{$id}->long_description($long_description); 
+        $all_probes->{$id}->group($group); 
+        $all_probes->{$id}->tolerance($tolerance); 
+        $all_probes->{$id}->every($every); 
+        $long_description = "";
+    }
+    
+    
+    close $fp;
+    return $all_probes;
+}
+
+#-------------------------------------------------------------------------
+
+# This sub is the core of angel. Given the probes, it starts polling.
+sub make_probes {
+    my ($all_probes,$old_probes,$stash) = @_;;
+    dbug(Dumper($all_probes));
+
+    require "$main::engine_plugin.pm";
+    no strict 'refs';
+    $all_probes = &$main::engine_plugin($all_probes,$old_probes,$stash);
+    use strict 'refs';
+
+    return $all_probes;
+}
+
+#-------------------------------------------------------------------------
+#   Support subroutines
+#-------------------------------------------------------------------------
+
+sub dbug {
+    my ($msg) = join(" ",@_);
+    print $msg if $debug;
+    print "\n" if $debug;
+    return;
+}
+
+sub run_output_plugins {
+    my ($all_probes, $old_probes) = @_;
+    foreach my $plugin (@main::output_plugins) {
+        require "$plugin.pm";
+        my $copy_of_probes = $all_probes;
+        my $copy_of_old_probes = $old_probes;
+        no strict 'refs';
+        &$plugin($all_probes, $old_probes);
+        use strict 'refs';
+    }
+    return;
+}

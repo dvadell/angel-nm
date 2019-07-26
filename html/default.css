@@ -1,0 +1,120 @@
+td.green {
+  background-color: #f0f6d7;
+  background-repeat: no-repeat;
+  background-position:  center center;
+  text-align: center;
+}
+td.red {
+  background-color: red;
+  background-repeat: no-repeat;
+  background-position:  center center;
+  text-align: center;
+}
+td.yellow {
+  background-color: yellow;
+  background-repeat: no-repeat;
+  background-position:  center center;
+  text-align: center;
+}
+body {
+  margin: 0px;
+  background-color: #ffffff;
+  width: 100%;
+  background-image: url(bg.gif);
+  background-repeat: repeat-y;
+  font-family: "Arial",serif;
+  vertical-align: top;
+  font-size: 13px;
+  color: #404040;
+  text-align: left;
+}
+input, textarea {
+  border: 1px solid #000000;
+  font-family: "Arial",serif;
+  font-size: 10px;
+  background-color: #ffffff;
+  color: #000000;
+}
+form {
+  margin: 0px;
+}
+a:link, a:visited, a.active {
+  font-family: "Arial",serif;
+  font-weight: bold;
+  font-size: 12px;
+  text-decoration: none;
+}
+a:hover {
+  color: #7d855b;
+  font-family: "Arial",serif;
+  font-weight: bold;
+  font-size: 12px;
+  text-decoration: none;
+}
+div#contain {
+  position: absolute;
+  width: 800px;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+}
+div#topleft {
+  position: absolute;
+  width: 404px;
+  height: 249px;
+  top: 0px;
+  left: 0px;
+  right: 0px;
+  background-image: url(topleft.jpg);
+}
+div#topright {
+  border-style: dotted;
+  border-width: thin;
+  position: absolute;
+  top: 30px;
+  width: 50%;
+  margin-left: 414px;
+  background-color: #f2fdc8;
+}
+div#left {
+  border: 1px solid #d4e695;
+  position: absolute;
+  top: 275px;
+  left: 23px;
+  right: 0px;
+  width: 202px;
+  height: 202px;
+  background-color: #f3f8da;
+}
+div#right {
+  top: 249px;
+  right: 0px;
+  left: 20px;
+  text-align: center;
+  clear: both;
+  float: none;
+  position: static;
+  margin-top: 300px;
+  margin-right: 20px;
+  margin-left: 20px;
+}
+table.b_contain {
+  border: 1px solid #d4e695;
+  padding: 4px;
+  background-color: #f3f8da;
+  width: 100%;
+}
+div#floating_table {
+  border: thin solid #000000;
+  margin: 10px;
+  padding: 10px;
+  position: relative;
+  float: left;
+}
+h1 {
+  margin: 0px;
+  color: #000000;
+  font-family: "Arial",serif;
+  font-weight: bold;
+  font-size: 25px;
+}

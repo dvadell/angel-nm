@@ -1,0 +1,19 @@
+--- 
+cmdline: 127.0.0.1!50!100
+col: ping
+every: ~
+every_count: ~
+graph_value: 0
+group: Default
+keyname: ping a localhost
+message: OK
+module: Check_ping
+options: title=Ping localhost!row=Localhost!col=ping
+pretty_value: 0 % lost
+row: Localhost
+status: 0
+timestamp: 1201198738
+title: Ping localhost
+tolerance: 2
+units: "% lost"
+value: 0
